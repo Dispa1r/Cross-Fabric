@@ -1,0 +1,136 @@
+package main
+
+import (
+	"bytes"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"fmt"
+	"math/big"
+)
+
+func GenRsaKey() (prvkey, pubkey []byte) {
+	// 生成私钥文件
+	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		panic(err)
+	}
+	derStream := x509.MarshalPKCS1PrivateKey(privateKey)
+	block := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: derStream,
+	}
+	prvkey = pem.EncodeToMemory(block)
+	publicKey := &privateKey.PublicKey
+	derPkix, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		panic(err)
+	}
+	block = &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: derPkix,
+	}
+	pubkey = pem.EncodeToMemory(block)
+	return
+}
+func RsaSignWithSha256(data []byte, keyBytes []byte) []byte {
+	h := sha256.New()
+	h.Write(data)
+	hashed := h.Sum(nil)
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		panic(errors.New("private key error"))
+	}
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		fmt.Println("ParsePKCS8PrivateKey err", err)
+		panic(err)
+	}
+
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed)
+	if err != nil {
+		fmt.Printf("Error from signing: %s\n", err)
+		panic(err)
+	}
+
+	return signature
+}
+
+//验证
+func RsaVerySignWithSha256(data, signData, keyBytes []byte) bool {
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		panic(errors.New("public key error"))
+	}
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		panic(err)
+	}
+
+	hashed := sha256.Sum256(data)
+	err = rsa.VerifyPKCS1v15(pubKey.(*rsa.PublicKey), crypto.SHA256, hashed[:], signData)
+	if err != nil {
+		panic(err)
+	}
+	return true
+}
+
+
+var base58= []byte("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+
+func Base58Encoding(strByte []byte) string { 		//Base58编码
+	//1. 转换成ascii码对应的值
+	//strByte := []byte(str)
+	//log.Println(strByte) // 结果[70 97 110]
+	//2. 转换十进制
+	strTen := big.NewInt(0).SetBytes(strByte)
+	//log.Println(strTen)  // 结果4612462
+	//3. 取出余数
+	var modSlice []byte
+	for strTen.Cmp(big.NewInt(0)) > 0 {
+		mod:=big.NewInt(0)  			//余数
+		strTen58:=big.NewInt(58)
+		strTen.DivMod(strTen,strTen58,mod)  //取余运算
+		modSlice = append(modSlice, base58[mod.Int64()])    //存储余数,并将对应值放入其中
+	}
+	//  处理0就是1的情况 0使用字节'1'代替
+	for _,elem := range strByte{
+		if elem!=0{
+			break
+		}else if elem == 0{
+			modSlice = append(modSlice,byte('1'))
+		}
+	}
+	//log.Println(modSlice)   //结果 [12 7 37 23] 但是要进行反转，因为求余的时候是相反的。
+	//log.Println(string(modSlice))  //结果D8eQ
+	ReverseModSlice:=ReverseByteArr(modSlice)
+	//log.Println(ReverseModSlice)  //反转[81 101 56 68]
+	//log.Println(string(ReverseModSlice))  //结果Qe8D
+	return string(ReverseModSlice)
+}
+func ReverseByteArr(bytes []byte) []byte{  	//将字节的数组反转
+	for i:=0; i<len(bytes)/2 ;i++{
+		bytes[i],bytes[len(bytes)-1-i] = bytes[len(bytes)-1-i],bytes[i]  //前后交换
+	}
+	return bytes
+}
+
+//就是编码的逆过程
+func Base58Decoding(str string) []byte { //Base58解码
+	strByte := []byte(str)
+	//log.Println(strByte)  //[81 101 56 68]
+	ret := big.NewInt(0)
+	for _,byteElem := range strByte{
+		index := bytes.IndexByte(base58,byteElem) //获取base58对应数组的下标
+		ret.Mul(ret,big.NewInt(58))  			//相乘回去
+		ret.Add(ret,big.NewInt(int64(index)))  //相加
+	}
+	//log.Println(ret) 	// 拿到了十进制 4612462
+	//log.Println(ret.Bytes())  //[70 97 110]
+	//log.Println(string(ret.Bytes()))
+	return ret.Bytes()
+}

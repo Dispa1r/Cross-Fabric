@@ -1,0 +1,8 @@
+chaininfo:
+  address: 26d61a11ee4e5412.natapp.cc
+  calcresource: Lp
+  id: "2"
+  localport: :8081
+  port: "60001"
+  relaychainaddress: 118.178.106.209:8080
+  type: normal
