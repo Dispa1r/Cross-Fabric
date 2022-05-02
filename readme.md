@@ -1,5 +1,68 @@
 # 基于中继链的联盟链跨链监管框架
 目前实现的监管计算：线性规划
+## CrossFabric使用流程
+
+### 环境准备
+两台ubuntu虚拟机作为监管与被监管链，一台云服务器作为中继链，由于所有通信流程在公网进行，因此需要内网穿透工具，这里选择使用[natapp](https://natapp.cn/)
+
+### 被监管链准备
+使用到的脚本文件均在tools文件夹内
+```
+# 启动基础环境（byfn）,添加第三个组织
+sudo ./1-2.startNetwork.sh 
+sudo ./2.addOrg3.sh
+
+# 安装和实例化代码
+# 安装伪随机数据生成链码
+sudo ./3-1.installDataGenerator.sh 
+# 生成随机数据,每次生成一万条
+sudo ./generateAndQuery.sh
+# 安装线性规划链码
+sudo ./3-1.installMathTest.sh 
+```
+
+接着需要修改一些ip的配置，修改的文件是```/appcode/fccserver/src/config/ChainInfo.yaml```，修改前先启动内网映射工具，默认映射到docker的8081端口，如需修改请同时修改```appcode```目录下的docker配置文件，主要需要配置的是公网ip与端口，以及跨链路由监听的端口，以及一些关于链的身份信息。
+
+![](/uploads/upload_9b61196adf3a1fa2b1e47a9458ad953d.png)
+
+配置结束后运行：
+
+```
+# 启动跨链路由
+sudo ./4.startAppcli.sh 
+# 查看日志
+sudo docker logs -f appcli
+```
+如果一切正常你应该看到这行日志
+![](/uploads/upload_25bffbc763c35b6fff6d6c402340fb9f.png)
+
+### 中继链准备
+
+与被监管链基本一致，唯一不同的是，中继链安装的链码不同
+
+```
+# 安装身份信息与跨链消息记录合约
+sudo ./InstallChainInfo.sh 
+sudo ./InstallCrossChainMessage.sh
+```
+
+中继链不需要配置Ip地址与端口，唯一需要配置的就是relaychainaddress，也就是自身地址,配置完成后运行appcli
+
+### 监管链准备
+
+
+与被监管链基本一致，唯一不同的是，同样也是安装的链码不同
+
+```
+sudo ./InstallSupervisor.sh 
+```
+配置Ip地址与端口，以及中继链地址后，运行appcli
+
+### 注册流程
+直接在the god项目中运行StartRegist函数即可
+
+### 监管流程
+直接在the god中运行StartSupervisor函数即可
 
 ## 跨链路由
 
