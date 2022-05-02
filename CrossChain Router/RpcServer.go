@@ -16,12 +16,12 @@ type RpcServer struct {
 func timeCost() func() {
 	start := time.Now()
 	return func() {
-		tc:=time.Since(start)
+		tc := time.Since(start)
 		log.Printf("time cost = %v\n", tc)
 	}
 }
 
-func (t *RpcServer) SendCrossChainMsg(msg Message,key *string) error {
+func (t *RpcServer) SendCrossChainMsg(msg Message, key *string) error {
 	log.Println("SendCrossChainMsg cost...")
 	defer timeCost()()
 	TargetAddress := CallGetAddressById(msg.TCID)
@@ -33,11 +33,12 @@ func (t *RpcServer) SendCrossChainMsg(msg Message,key *string) error {
 		log.Println("fail to set Crosschain Msg")
 		return err
 	}
-	err = TransferMsg(TargetAddress,msg)
+	err = TransferMsg(TargetAddress, msg)
 	if err != nil {
 		log.Println("fail to transfer the msg")
 		return err
 	}
+	*key = "success"
 	return nil
 }
 
@@ -54,11 +55,11 @@ func (t *RpcServer) RegisterInfo(args Register, reply *int) error {
 	return nil
 }
 
-func (t *RpcServer) GetPubKeyById(chainId string,pubKey *[]byte) error {
+func (t *RpcServer) GetPubKeyById(chainId string, pubKey *[]byte) error {
 	log.Println("get public key by id cost...")
 	defer timeCost()()
 	PubKey := CallGetPubkeyById(chainId)
-	if len(PubKey) == 0{
+	if len(PubKey) == 0 {
 		log.Println("fail to get pub key")
 		return errors.New("fail to get pub key")
 	}
@@ -66,22 +67,22 @@ func (t *RpcServer) GetPubKeyById(chainId string,pubKey *[]byte) error {
 	return nil
 }
 
-func (t *RpcServer) GetAllNormalChains(chainId string,chainlist *string) error {
+func (t *RpcServer) GetAllNormalChains(chainId string, chainlist *string) error {
 	log.Println("get all normal chains cost...")
 	defer timeCost()()
 	chainList := CallGetAllNormalChain()
 	*chainlist = chainList
-	log.Println("chainList",chainList)
+	log.Println("chainList", chainList)
 	return nil
 }
 
-func (t *RpcServer) GetCrossChainMsg(msg Message,code *int) error{
-	if msg.Type == "to"{
+func (t *RpcServer) GetCrossChainMsg(msg Message, code *int) error {
+	if msg.Type == "to" {
 		// 说明应该返回数据了
 		log.Println("get cross chain msg to cost...")
 		defer timeCost()()
-		log.Println("Get Message From relay chain",msg)
-		result := CheckSign(msg.SCID,msg)
+		log.Println("Get Message From relay chain", msg)
+		result := CheckSign(msg.SCID, msg)
 		if !result {
 			log.Println("Sign invalid, please check the msg")
 			return errors.New("invalid msg")
@@ -95,18 +96,18 @@ func (t *RpcServer) GetCrossChainMsg(msg Message,code *int) error{
 		}
 		*code = 0
 		return nil
-	}else if msg.Type == "back" {
+	} else if msg.Type == "back" {
 		// 说明返回的数据到了
 		log.Println("get cross chain msg back cost...")
 		defer timeCost()()
-		result := CheckSign(msg.SCID,msg)
+		result := CheckSign(msg.SCID, msg)
 		if !result {
 			log.Println("Sign invalid, please check the msg")
 			return errors.New("invalid msg")
 		}
 		// call the contract to check the proof
 		err := CCCheckLP(msg)
-		if err != nil{
+		if err != nil {
 			log.Println("fail to write cross chain result")
 			*code = 1
 			return err
@@ -117,9 +118,9 @@ func (t *RpcServer) GetCrossChainMsg(msg Message,code *int) error{
 	return nil
 }
 
-func (t *RpcServer) GetChainPrivKey(privkey []byte,code *int) error{
+func (t *RpcServer) GetChainPrivKey(privkey []byte, code *int) error {
 
-	nowPri,err  := ReadPrivateKeyFile()
+	nowPri, err := ReadPrivateKeyFile()
 	if len(nowPri) != 0 {
 		return errors.New("this chain have registed")
 	}
@@ -135,11 +136,11 @@ func (t *RpcServer) GetChainPrivKey(privkey []byte,code *int) error{
 	if err != nil {
 		log.Println(err)
 	}
-	log.Println("update chain privateKey",string(privkey))
+	log.Println("update chain privateKey", string(privkey))
 	return nil
 }
 
-func (t *RpcServer) GetChainId(id string,code *int) error{
+func (t *RpcServer) GetChainId(id string, code *int) error {
 	log.Println("get get Chain id key cost...")
 	defer timeCost()()
 	if len(ChainId) != 0 {
@@ -149,11 +150,11 @@ func (t *RpcServer) GetChainId(id string,code *int) error{
 	log.Println("success to regist info")
 	ChainId = id
 	UpdateConfig()
-	log.Println("update chain Id",ChainId)
+	log.Println("update chain Id", ChainId)
 	return nil
 }
 
-func (t *RpcServer) StartRegist(id string,code *int) error{
+func (t *RpcServer) StartRegist(id string, code *int) error {
 	err := RegistChainTest()
 	if err != nil {
 		log.Println(err)
@@ -161,8 +162,8 @@ func (t *RpcServer) StartRegist(id string,code *int) error{
 	return err
 }
 
-func (t *RpcServer) StartCrossChain(id string,code *int) error{
-	err := SendCrossChainRequestTest(ChainId,id,"Lp")
+func (t *RpcServer) StartCrossChain(id string, code *int) error {
+	err := SendCrossChainRequestTest(ChainId, id, "Lp")
 	if err != nil {
 		log.Println(err)
 	}

@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"crypto"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -11,6 +14,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -18,9 +22,9 @@ import (
 	"os"
 )
 
-var base58= []byte("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+var base58 = []byte("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
 
-func Base58Encoding(strByte []byte) string { 		//Base58编码
+func Base58Encoding(strByte []byte) string { //Base58编码
 	//1. 转换成ascii码对应的值
 	//strByte := []byte(str)
 	//log.Println(strByte) // 结果[70 97 110]
@@ -30,29 +34,29 @@ func Base58Encoding(strByte []byte) string { 		//Base58编码
 	//3. 取出余数
 	var modSlice []byte
 	for strTen.Cmp(big.NewInt(0)) > 0 {
-		mod:=big.NewInt(0)  			//余数
-		strTen58:=big.NewInt(58)
-		strTen.DivMod(strTen,strTen58,mod)  //取余运算
-		modSlice = append(modSlice, base58[mod.Int64()])    //存储余数,并将对应值放入其中
+		mod := big.NewInt(0) //余数
+		strTen58 := big.NewInt(58)
+		strTen.DivMod(strTen, strTen58, mod)             //取余运算
+		modSlice = append(modSlice, base58[mod.Int64()]) //存储余数,并将对应值放入其中
 	}
 	//  处理0就是1的情况 0使用字节'1'代替
-	for _,elem := range strByte{
-		if elem!=0{
+	for _, elem := range strByte {
+		if elem != 0 {
 			break
-		}else if elem == 0{
-			modSlice = append(modSlice,byte('1'))
+		} else if elem == 0 {
+			modSlice = append(modSlice, byte('1'))
 		}
 	}
 	//log.Println(modSlice)   //结果 [12 7 37 23] 但是要进行反转，因为求余的时候是相反的。
 	//log.Println(string(modSlice))  //结果D8eQ
-	ReverseModSlice:=ReverseByteArr(modSlice)
+	ReverseModSlice := ReverseByteArr(modSlice)
 	//log.Println(ReverseModSlice)  //反转[81 101 56 68]
 	//log.Println(string(ReverseModSlice))  //结果Qe8D
 	return string(ReverseModSlice)
 }
-func ReverseByteArr(bytes []byte) []byte{  	//将字节的数组反转
-	for i:=0; i<len(bytes)/2 ;i++{
-		bytes[i],bytes[len(bytes)-1-i] = bytes[len(bytes)-1-i],bytes[i]  //前后交换
+func ReverseByteArr(bytes []byte) []byte { //将字节的数组反转
+	for i := 0; i < len(bytes)/2; i++ {
+		bytes[i], bytes[len(bytes)-1-i] = bytes[len(bytes)-1-i], bytes[i] //前后交换
 	}
 	return bytes
 }
@@ -62,10 +66,10 @@ func Base58Decoding(str string) []byte { //Base58解码
 	strByte := []byte(str)
 	//log.Println(strByte)  //[81 101 56 68]
 	ret := big.NewInt(0)
-	for _,byteElem := range strByte{
-		index := bytes.IndexByte(base58,byteElem) //获取base58对应数组的下标
-		ret.Mul(ret,big.NewInt(58))  			//相乘回去
-		ret.Add(ret,big.NewInt(int64(index)))  //相加
+	for _, byteElem := range strByte {
+		index := bytes.IndexByte(base58, byteElem) //获取base58对应数组的下标
+		ret.Mul(ret, big.NewInt(58))               //相乘回去
+		ret.Add(ret, big.NewInt(int64(index)))     //相加
 	}
 	//log.Println(ret) 	// 拿到了十进制 4612462
 	//log.Println(ret.Bytes())  //[70 97 110]
@@ -140,7 +144,7 @@ func RsaVerySignWithSha256(data, signData, keyBytes []byte) bool {
 	return true
 }
 
-func GetRemotePublicKey (chainid string) []byte{
+func GetRemotePublicKey(chainid string) []byte {
 	conn, err := jsonrpc.Dial("tcp", RelayChainAddress)
 	if err != nil {
 		log.Println("fail to connect to target address")
@@ -155,10 +159,14 @@ func GetRemotePublicKey (chainid string) []byte{
 	return pubKey
 }
 
-func CheckSign(chainId string,msg Message) bool{
+func RsaEncrypt() {
+
+}
+
+func CheckSign(chainId string, msg Message) bool {
 	pubkey := GetRemotePublicKey(chainId)
 	tmpMsg := Message{
-		UUID:     msg.UUID,
+		UUID:      msg.UUID,
 		SCID:      msg.SCID,
 		TCID:      msg.TCID,
 		CalcType:  msg.CalcType,
@@ -166,31 +174,81 @@ func CheckSign(chainId string,msg Message) bool{
 		Proof:     msg.Proof,
 		Type:      msg.Type,
 	}
-	jsbytes,err := json.Marshal(tmpMsg)
+	jsbytes, err := json.Marshal(tmpMsg)
 	if err != nil {
 		log.Println("fail to marshal the data")
 	}
 
 	signdata := Base58Decoding(msg.Sign)
-	checkResult := RsaVerySignWithSha256(jsbytes,signdata,pubkey)
+	checkResult := RsaVerySignWithSha256(jsbytes, signdata, pubkey)
 	return checkResult
 }
 
-func ReadPrivateKeyFile() ([]byte,error){
+func ReadPrivateKeyFile() ([]byte, error) {
 	file, err := os.Open("./pri.key")
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	defer file.Close()
 	content, err := ioutil.ReadAll(file)
 	fmt.Println(string(content))
-	return content,nil
+	return content, nil
 }
 
-func SavePrivateKeyFile(privKey []byte) error{
-	err := ioutil.WriteFile("./pri.key",privKey , 0644)
+func SavePrivateKeyFile(privKey []byte) error {
+	err := ioutil.WriteFile("./pri.key", privKey, 0644)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func PKCS7Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+
+func PKCS7UnPadding(origData []byte) []byte {
+	length := len(origData)
+	unpadding := int(origData[length-1])
+	return origData[:(length - unpadding)]
+}
+
+//AES加密,CBC
+func AesEncrypt(origData, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	blockSize := block.BlockSize()
+	origData = PKCS7Padding(origData, blockSize)
+	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
+	crypted := make([]byte, len(origData))
+	blockMode.CryptBlocks(crypted, origData)
+	return crypted, nil
+}
+
+//AES解密
+func AesDecrypt(crypted, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	blockSize := block.BlockSize()
+	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
+	origData := make([]byte, len(crypted))
+	blockMode.CryptBlocks(origData, crypted)
+	origData = PKCS7UnPadding(origData)
+	return origData, nil
+}
+
+func getKey() [16]byte {
+	//方法一
+	u, _ := uuid.NewRandom()
+	str := u.String()
+	has := md5.Sum([]byte(str))
+	//md5str1 := fmt.Sprintf("%x", has) //将[]byte转成16进制
+	//md5str1 := fmt.Sprintf("%x", has) //将[]byte转成16进制
+	return has
 }

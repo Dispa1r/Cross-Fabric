@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-func TransferMsg (address string,msg Message) error {
-	log.Println(msg,address)
+func TransferMsg(address string, msg Message) error {
+	log.Println(msg, address)
 	conn, err := jsonrpc.Dial("tcp", address)
 	if err != nil {
 		log.Println("fail to connect to target address")
@@ -32,18 +32,18 @@ func SendDataToRelayChain(msg Message) error {
 		TCID:      msg.SCID,
 		CalcType:  msg.CalcType,
 		TimeStamp: time.Now().Unix(),
-		Proof:    result,
+		Proof:     result,
 		Type:      "back",
 	}
-	jsbBytes,err := json.Marshal(msgNew)
+	jsbBytes, err := json.Marshal(msgNew)
 	if err != nil {
 		log.Println("fail to marsha the data")
 	}
-	ChainPrivateKey,err = ReadPrivateKeyFile()
+	ChainPrivateKey, err = ReadPrivateKeyFile()
 	if err != nil {
 		log.Println(err)
 	}
-	sign := RsaSignWithSha256(jsbBytes,ChainPrivateKey)
+	sign := RsaSignWithSha256(jsbBytes, ChainPrivateKey)
 	msgNew.Sign = Base58Encoding(sign)
 	// 消息让中继链转发
 	conn, err := jsonrpc.Dial("tcp", RelayChainAddress)
@@ -51,16 +51,12 @@ func SendDataToRelayChain(msg Message) error {
 		log.Println("fail to connect to target address")
 		return err
 	}
-	var code int
+	var code string
 	err = conn.Call("RpcServer.SendCrossChainMsg", msgNew, &code)
-	log.Println("new msg",msg)
+	log.Println("new msg", msg)
 	if err != nil {
 		log.Println("call MathService.GetCrossChainMsg error:", err)
 		return err
 	}
 	return nil
 }
-
-
-
-

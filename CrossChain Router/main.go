@@ -10,14 +10,14 @@ import (
 	"os"
 )
 
-func InitConfig(){
-	workDir,_ :=os.Getwd()
-	viper.AddConfigPath(workDir+"/config/")
+func InitConfig() {
+	workDir, _ := os.Getwd()
+	viper.AddConfigPath(workDir + "/config/")
 	viper.SetConfigName("ChainInfo")
 	viper.SetConfigType("yaml")
-	err :=viper.ReadInConfig()
-	if err!=nil{
-		log.Println("read config failed",err)
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Println("read config failed", err)
 	}
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
@@ -34,13 +34,13 @@ func InitConfig(){
 }
 
 func UpdateConfig() {
-	viper.Set("ChainInfo.port",ChainPort)
-	viper.Set("ChainInfo.Address",ChainAddress)
-	viper.Set("ChainInfo.calcResource",ChainCalcResoure)
-	viper.Set("ChainInfo.relayChainAddress",RelayChainAddress)
-	viper.Set("ChainInfo.id",ChainId)
-	viper.Set("ChainInfo.type",ChainType)
-	viper.Set("ChainInfo.localPort",localPort)
+	viper.Set("ChainInfo.port", ChainPort)
+	viper.Set("ChainInfo.Address", ChainAddress)
+	viper.Set("ChainInfo.calcResource", ChainCalcResoure)
+	viper.Set("ChainInfo.relayChainAddress", RelayChainAddress)
+	viper.Set("ChainInfo.id", ChainId)
+	viper.Set("ChainInfo.type", ChainType)
+	viper.Set("ChainInfo.localPort", localPort)
 	viper.WriteConfig()
 }
 
@@ -53,7 +53,7 @@ func main() {
 	//GetAllChainTest()
 	//err := SendCrossChainRequestTest(ChainId,"2","Lp")
 	//err := RegistChainTest()
-	if err != nil{
+	if err != nil {
 		fmt.Println("fail to connect the chain")
 	}
 	//err := TestSignAndVerify()
