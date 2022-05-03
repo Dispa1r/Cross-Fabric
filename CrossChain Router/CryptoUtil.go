@@ -10,6 +10,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -251,4 +252,38 @@ func getKey() [16]byte {
 	//md5str1 := fmt.Sprintf("%x", has) //将[]byte转成16进制
 	//md5str1 := fmt.Sprintf("%x", has) //将[]byte转成16进制
 	return has
+}
+
+func DecryptMsg(msg string) Message {
+	msgAESBytes, err := base64.StdEncoding.DecodeString(msg)
+	if err != nil {
+		log.Println("fail to base decode msg ", err)
+	}
+	if len(LocalKey) == 0 {
+		log.Println("invalid local key")
+		return Message{}
+	}
+	msgBytes, err := AesDecrypt(msgAESBytes, LocalKey)
+	msgObejct := Message{}
+	err1 := json.Unmarshal(msgBytes, &msgObejct)
+	if err1 != nil {
+		log.Println("fail to unmarshal msg")
+		return Message{}
+	}
+	return msgObejct
+}
+
+func EncMsg(msg Message, key []byte) string {
+	msgBytes, err := json.Marshal(msg)
+	if err != nil {
+		log.Println("fail to marsha the message ", err)
+		return ""
+	}
+	encBytes, err1 := AesEncrypt(msgBytes, key)
+	if err1 != nil {
+		log.Println("fail to encrypt the message ", err)
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(encBytes)
+
 }

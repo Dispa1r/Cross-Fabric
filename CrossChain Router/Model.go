@@ -1,23 +1,24 @@
 package main
+
 type Register struct {
-	Id int
-	Name string
-	Identity string
-	Address string
-	Port string
+	Id        int
+	Name      string
+	Identity  string
+	Address   string
+	Port      string
 	PublicKey string
-	CalcType string
+	CalcType  string
 }
 
 type Message struct {
-	UUID string
-	SCID string
-	TCID string
-	CalcType string
+	UUID      string
+	SCID      string
+	TCID      string
+	CalcType  string
 	TimeStamp int64
-	Sign string
-	Proof LpProof
-	Type string
+	Sign      string
+	Proof     LpProof
+	Type      string
 }
 
 type LpProof struct {
@@ -26,4 +27,10 @@ type LpProof struct {
 	B []float64 `json:"B"`
 	Y []float64 `json:"Y"`
 	A []float64 `json:"A"`
+}
+
+type KeyInfo struct {
+	TCID string
+	UUID string
+	Key  string
 }

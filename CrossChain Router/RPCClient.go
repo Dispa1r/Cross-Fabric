@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/rpc/jsonrpc"
 	"time"
@@ -14,8 +15,13 @@ func TransferMsg(address string, msg Message) error {
 		log.Println("fail to connect to target address")
 		return err
 	}
+	if _, ok := Keys[msg.UUID]; !ok {
+		return errors.New("invalid uuid")
+	}
+	data, _ := Keys[msg.UUID]
+	final := EncMsg(msg, data)
 	var code int
-	err = conn.Call("RpcServer.GetCrossChainMsg", msg, &code)
+	err = conn.Call("RpcServer.GetCrossChainMsg", final, &code)
 	if err != nil {
 		log.Println("call MathService.GetCrossChainMsg error:", err)
 		return err

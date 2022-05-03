@@ -31,6 +31,10 @@ func InitConfig() {
 	ChainCalcResoure = viper.GetString("ChainInfo.calcResource")
 	ChainId = viper.GetString("ChainInfo.id")
 	localPort = viper.GetString("ChainInfo.localPort")
+	LocalKey = make([]byte, 16)
+	Keys = make(map[string][]byte)
+	UUIDList = make(map[string]struct{})
+	TmpUUID = ""
 }
 
 func UpdateConfig() {

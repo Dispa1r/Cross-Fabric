@@ -21,9 +21,10 @@ func timeCost() func() {
 	}
 }
 
-func (t *RpcServer) SendCrossChainMsg(msg Message, key *string) error {
+func (t *RpcServer) SendCrossChainMsg(EncMsg string, key *string) error {
 	log.Println("SendCrossChainMsg cost...")
 	defer timeCost()()
+	msg := DecryptMsg(EncMsg)
 	TargetAddress := CallGetAddressById(msg.TCID)
 	log.Println(TargetAddress)
 	log.Println("Get Target Address")
@@ -39,6 +40,41 @@ func (t *RpcServer) SendCrossChainMsg(msg Message, key *string) error {
 		return err
 	}
 	*key = "success"
+	return nil
+}
+
+// used in relay chain
+func (t *RpcServer) KeyGenerate(keyinfo KeyInfo, aesKey *string) error {
+	if _, ok := UUIDList[keyinfo.UUID]; ok {
+		log.Println("uuid has existed")
+		return errors.New("uuid has existed")
+	}
+	TargetAddress := CallGetAddressById(keyinfo.TCID)
+	conn, err := jsonrpc.Dial("tcp", TargetAddress)
+	if err != nil {
+		log.Println("fail to connect to target address")
+		return err
+	}
+	UUIDList[keyinfo.UUID] = struct{}{}
+	keyArray := getKey()
+	// Array to slice
+	Keys[keyinfo.UUID] = keyArray[0:]
+	*aesKey = Base58Encoding(keyArray[0:])
+	var code int
+	newKeyInfo := KeyInfo{UUID: keyinfo.UUID, Key: Base58Encoding(keyArray[0:]), TCID: keyinfo.TCID}
+	err = conn.Call("RpcServer.SetKey", newKeyInfo, &code)
+	if err != nil {
+		log.Println("call MathService.SetKey error:", err)
+		return err
+	}
+	return nil
+}
+
+/// TODO: 添加rpc访问权限管理
+func (t *RpcServer) SetKey(keyinfo KeyInfo, code *int) error {
+	TmpUUID = keyinfo.UUID
+	LocalKey = Base58Decoding(keyinfo.Key)
+	*code = 1
 	return nil
 }
 
@@ -76,7 +112,13 @@ func (t *RpcServer) GetAllNormalChains(chainId string, chainlist *string) error 
 	return nil
 }
 
-func (t *RpcServer) GetCrossChainMsg(msg Message, code *int) error {
+func (t *RpcServer) GetCrossChainMsg(EncMsg string, code *int) error {
+	msg := DecryptMsg(EncMsg)
+	if msg.UUID != TmpUUID {
+		log.Println("invalid meeting")
+		*code = -1
+		return errors.New("invalid meeting")
+	}
 	if msg.Type == "to" {
 		// 说明应该返回数据了
 		log.Println("get cross chain msg to cost...")
