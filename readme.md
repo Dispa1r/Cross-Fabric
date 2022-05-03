@@ -74,6 +74,8 @@ sudo ./InstallSupervisor.sh
 * Base58 Encoding & Decoding
 
 ### RPC Interfaces
+ * KeyGenerate(keyinfo KeyInfo,code *int) error // 密钥协商阶段，由监管链发起，同时会设置目标链的key与UUID
+ * SetKey(keyinfo KeyInfo,code *int) error  // 被监管链专用，中继链用来更新uuid
  * SendCrossChainMsg(msg Message,key *string) error // 发起跨链请求
  * RegisterInfo(args Register, reply *int) error
  * GetPubKeyById(chainId string,pubKey *[]byte) error // 注册身份信息
@@ -84,6 +86,7 @@ sudo ./InstallSupervisor.sh
  * GetChainPrivKey(privkey []byte,code *int) error // 接受私钥
  * GetChainId(id string,code *int) error // 接受链id
 ### Contract Interfaces
+* GetTypeByID(Id string) // 待更新，用于校验监管链的身份信息是否合法
 * GetTimeStart() string // 获取开始进行业务计算的时间
 * GetCalcResult(timeStart string)  (LpProof) // 获取计算结果
 * CallDataGenerator() error // 调用产生数据
