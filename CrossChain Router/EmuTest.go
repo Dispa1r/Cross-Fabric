@@ -13,6 +13,7 @@ import (
 func SendCrossChainRequestTest(SCID, TCID, CalcType string) error {
 	u, _ := uuid.NewRandom()
 	uu := u.String()
+	TmpUUID = uu
 	msg := Message{
 		UUID:      uu,
 		SCID:      SCID,
@@ -59,8 +60,9 @@ func SendCrossChainRequestTest(SCID, TCID, CalcType string) error {
 		return err2
 	}
 	final := base64.StdEncoding.EncodeToString(encMsg)
+	encStru := EncMsgStruct{uu, final}
 	var code string
-	err = conn.Call("RpcServer.SendCrossChainMsg", final, &code)
+	err = conn.Call("RpcServer.SendCrossChainMsg", encStru, &code)
 	if err != nil {
 		log.Println(err)
 	}

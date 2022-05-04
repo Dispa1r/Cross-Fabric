@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TransferMsg(address string, msg Message) error {
+func TransferMsg(address string, msg Message, cipher EncMsgStruct) error {
 	log.Println(msg, address)
 	conn, err := jsonrpc.Dial("tcp", address)
 	if err != nil {
@@ -18,10 +18,8 @@ func TransferMsg(address string, msg Message) error {
 	if _, ok := Keys[msg.UUID]; !ok {
 		return errors.New("invalid uuid")
 	}
-	data, _ := Keys[msg.UUID]
-	final := EncMsg(msg, data)
 	var code int
-	err = conn.Call("RpcServer.GetCrossChainMsg", final, &code)
+	err = conn.Call("RpcServer.GetCrossChainMsg", cipher, &code)
 	if err != nil {
 		log.Println("call MathService.GetCrossChainMsg error:", err)
 		return err
@@ -51,6 +49,8 @@ func SendDataToRelayChain(msg Message) error {
 	}
 	sign := RsaSignWithSha256(jsbBytes, ChainPrivateKey)
 	msgNew.Sign = Base58Encoding(sign)
+	final := EncMsg(msg, LocalKey)
+	encMsg := EncMsgStruct{UUID: msg.UUID, Cipher: final}
 	// 消息让中继链转发
 	conn, err := jsonrpc.Dial("tcp", RelayChainAddress)
 	if err != nil {
@@ -58,7 +58,7 @@ func SendDataToRelayChain(msg Message) error {
 		return err
 	}
 	var code string
-	err = conn.Call("RpcServer.SendCrossChainMsg", msgNew, &code)
+	err = conn.Call("RpcServer.SendCrossChainMsg", encMsg, &code)
 	log.Println("new msg", msg)
 	if err != nil {
 		log.Println("call MathService.GetCrossChainMsg error:", err)

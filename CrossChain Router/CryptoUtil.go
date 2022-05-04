@@ -254,8 +254,28 @@ func getKey() [16]byte {
 	return has
 }
 
-func DecryptMsg(msg string) Message {
-	msgAESBytes, err := base64.StdEncoding.DecodeString(msg)
+func DecryptRelayChainMsg(msg EncMsgStruct) Message {
+	uuid := msg.UUID
+	msgAESBytes, err := base64.StdEncoding.DecodeString(msg.Cipher)
+	if err != nil {
+		log.Println("fail to base decode msg ", err)
+	}
+	if _, ok := Keys[uuid]; !ok {
+		log.Println("invalid local key")
+		return Message{}
+	}
+	msgBytes, err := AesDecrypt(msgAESBytes, Keys[uuid])
+	msgObejct := Message{}
+	err1 := json.Unmarshal(msgBytes, &msgObejct)
+	if err1 != nil {
+		log.Println("fail to unmarshal msg")
+		return Message{}
+	}
+	return msgObejct
+}
+
+func DecryptRelayTargetChain(msg EncMsgStruct) Message {
+	msgAESBytes, err := base64.StdEncoding.DecodeString(msg.Cipher)
 	if err != nil {
 		log.Println("fail to base decode msg ", err)
 	}
@@ -272,7 +292,6 @@ func DecryptMsg(msg string) Message {
 	}
 	return msgObejct
 }
-
 func EncMsg(msg Message, key []byte) string {
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {

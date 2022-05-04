@@ -34,3 +34,8 @@ type KeyInfo struct {
 	UUID string
 	Key  string
 }
+
+type EncMsgStruct struct {
+	UUID   string
+	Cipher string
+}

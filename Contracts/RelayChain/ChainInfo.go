@@ -129,6 +129,17 @@ func (t *IdentityInfo) getPubKeyById (stub shim.ChaincodeStubInterface, args [] 
 	fmt.Println(info.PublicKey)
 	return shim.Success(info.PublicKey)
 }
+func (t *IdentityInfo) getInfoById (stub shim.ChaincodeStubInterface, args [] string) peer.Response{
+
+	value, err := stub.GetState(args[0])
+	info := IdInfo{}
+	err = json.Unmarshal(value,&info)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	fmt.Println(info.Identity)
+	return shim.Success(info.Identity)
+}
 
 func (t *IdentityInfo) GetAddressById (stub shim.ChaincodeStubInterface, args [] string)  peer.Response {
 	value, err := stub.GetState(args[0])
@@ -170,6 +181,8 @@ func (t *IdentityInfo) Invoke (stub shim.ChaincodeStubInterface) peer.Response{
 		return t.GetAddressById(stub , args)
 	}else if fn == "getNormalChain"{
 		return t.GetAllNormalChain(stub , args)
+	}else if fn == "getInfoById" {
+		return t.getInfoById(stub,args)
 	}
 	return shim.Error("Invoke fn error")
 }

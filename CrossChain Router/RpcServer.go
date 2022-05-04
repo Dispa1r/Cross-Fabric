@@ -21,10 +21,10 @@ func timeCost() func() {
 	}
 }
 
-func (t *RpcServer) SendCrossChainMsg(EncMsg string, key *string) error {
+func (t *RpcServer) SendCrossChainMsg(EncMsg EncMsgStruct, key *string) error {
 	log.Println("SendCrossChainMsg cost...")
 	defer timeCost()()
-	msg := DecryptMsg(EncMsg)
+	msg := DecryptRelayChainMsg(EncMsg)
 	TargetAddress := CallGetAddressById(msg.TCID)
 	log.Println(TargetAddress)
 	log.Println("Get Target Address")
@@ -34,7 +34,7 @@ func (t *RpcServer) SendCrossChainMsg(EncMsg string, key *string) error {
 		log.Println("fail to set Crosschain Msg")
 		return err
 	}
-	err = TransferMsg(TargetAddress, msg)
+	err = TransferMsg(TargetAddress, msg, EncMsg)
 	if err != nil {
 		log.Println("fail to transfer the msg")
 		return err
@@ -112,13 +112,14 @@ func (t *RpcServer) GetAllNormalChains(chainId string, chainlist *string) error 
 	return nil
 }
 
-func (t *RpcServer) GetCrossChainMsg(EncMsg string, code *int) error {
-	msg := DecryptMsg(EncMsg)
-	if msg.UUID != TmpUUID {
+func (t *RpcServer) GetCrossChainMsg(EncMsg EncMsgStruct, code *int) error {
+	if EncMsg.UUID != TmpUUID {
 		log.Println("invalid meeting")
 		*code = -1
 		return errors.New("invalid meeting")
 	}
+
+	msg := DecryptRelayTargetChain(EncMsg)
 	if msg.Type == "to" {
 		// 说明应该返回数据了
 		log.Println("get cross chain msg to cost...")
